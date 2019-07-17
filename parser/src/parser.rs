@@ -4,8 +4,8 @@
 
 use chrono::{DateTime, FixedOffset, NaiveDate, NaiveTime, TimeZone};
 use crate::decode::basic::{BasicDecoder, LittleEndianBasicDecoder};
-use crate::decode::{BasicDecode, Decode};
-use crate::error::{Error, InvalidValueReadError, Result, TextEncodingError};
+use crate::decode::{BasicDecode, Decode, DecodeError};
+use crate::error::{InvalidValueReadError, TextEncodingError};
 use crate::text::{
     validate_da, validate_dt, validate_tm, DefaultCharacterSetCodec, TextValidationOutcome,
     DynamicTextCodec, SpecificCharacterSet, TextCodec};
@@ -21,8 +21,19 @@ use std::iter::Iterator;
 use std::marker::PhantomData;
 use std::ops::{Add, Mul, Sub};
 use smallvec::SmallVec;
+use snafu::Snafu;
 
 const Z: i32 = b'0' as i32;
+
+#[derive(Debug, Snafu)]
+pub enum ParseError {
+    #[snafu(display("data decoding error: {}", source))]
+    DecodeData {
+        source: DecodeError
+    },
+}
+
+pub type Result<T> = std::result::Result<T, ParseError>;
 
 /// A trait for DICOM data parsers, which abstracts the necessary parts
 /// of a full DICOM content reading process.
@@ -114,7 +125,7 @@ macro_rules! require_known_length {
     ($header:ident) => {
         match $header.len().get() {
             None => {
-                return Err(Error::from(InvalidValueReadError::UnresolvedValueLength));
+                return Err(ParseError::DecodeData { source: InvalidValueReadError::UnresolvedValueLength });
             }
             Some(len) => len as usize,
         }

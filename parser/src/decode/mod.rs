@@ -4,13 +4,27 @@ use byteordered::Endianness;
 use crate::transfer_syntax::explicit_le::ExplicitVRLittleEndianDecoder;
 use crate::transfer_syntax::implicit_le::{
     ImplicitVRLittleEndianDecoder, StandardImplicitVRLittleEndianDecoder};
-use crate::error::Result;
-use dicom_core::header::{DataElementHeader, SequenceItemHeader};
+use dicom_core::header::{DataElementHeader, SequenceItemHeader, HeaderError};
 use dicom_core::Tag;
-use std::io::Read;
+use snafu::Snafu;
+use std::io::{self, Read};
 
 pub mod erased;
 pub mod basic;
+
+#[derive(Debug, Snafu)]
+pub enum DecodeError {
+    #[snafu(display("I/O error while reading raw data: {}", source))]
+    ReadData {
+        source: io::Error,
+    },
+    #[snafu(display("header error: {}", source))]
+    Header {
+        source: HeaderError,
+    },
+}
+
+pub type Result<T, E = DecodeError> = std::result::Result<T, E>;
 
 /** Obtain the default data element decoder.
  * According to the standard, data elements are encoded in Implicit

@@ -1,11 +1,23 @@
 //! This module includes a high level abstraction over a DICOM data element's value.
 
 use chrono::{DateTime, Datelike, FixedOffset, NaiveDate, NaiveTime, Timelike};
-use crate::error::CastValueError;
 use crate::header::{Length, Tag};
 use itertools::Itertools;
 use std::borrow::Cow;
 use smallvec::SmallVec;
+use snafu::Snafu;
+
+/// Error type for attempts to access a value in an inappropriate format.
+#[derive(Debug, Clone, PartialEq, Snafu)]
+pub enum ValueError {
+    #[snafu(display("illegal conversion: requested {} but the value type is {:?}", requested, got))]
+    CastValue {
+        /// The value format requested
+        requested: &'static str,
+        /// The value's actual representation
+        got: ValueType,
+    }
+}
 
 /// An aggregation of one or more elements in a value. 
 pub type C<T> = SmallVec<[T; 2]>;
@@ -74,13 +86,13 @@ where
     /// 
     /// If the value contains multiple strings, they are concatenated
     /// (separated by `'\\'`) into an owned string.
-    pub fn to_str(&self) -> Result<Cow<str>, CastValueError> {
+    pub fn to_str(&self) -> Result<Cow<str>, ValueError> {
         match self {
             &Value::Primitive(PrimitiveValue::Str(ref v)) => Ok(Cow::from(v.as_str())),
             &Value::Primitive(PrimitiveValue::Strs(ref v)) => {
                 Ok(Cow::from(v.into_iter().join("\\")))
             }
-            _ => Err(CastValueError {
+            _ => Err(ValueError::CastValue {
                 requested: "string",
                 got: self.value_type(),
             }),
@@ -88,10 +100,10 @@ where
     }
 
     /// Retrieves the primitive value as a sequence of unsigned bytes.
-    pub fn as_u8(&self) -> Result<&[u8], CastValueError> {
+    pub fn as_u8(&self) -> Result<&[u8], ValueError> {
         match self {
             &Value::Primitive(PrimitiveValue::U8(ref v)) => Ok(&v),
-            _ => Err(CastValueError {
+            _ => Err(ValueError::CastValue {
                 requested: "u8",
                 got: self.value_type(),
             }),
@@ -99,10 +111,10 @@ where
     }
 
     /// Retrieves the primitive value as a sequence of signed 32-bit integers.
-    pub fn as_i32(&self) -> Result<&[i32], CastValueError> {
+    pub fn as_i32(&self) -> Result<&[i32], ValueError> {
         match self {
             &Value::Primitive(PrimitiveValue::I32(ref v)) => Ok(&v),
-            _ => Err(CastValueError {
+            _ => Err(ValueError::CastValue {
                 requested: "i32",
                 got: self.value_type(),
             }),
@@ -110,10 +122,10 @@ where
     }
 
     /// Retrieves the primitive value as a DICOM tag.
-    pub fn to_tag(&self) -> Result<Tag, CastValueError> {
+    pub fn to_tag(&self) -> Result<Tag, ValueError> {
         match self {
             &Value::Primitive(PrimitiveValue::Tags(ref v)) => Ok(v[0]),
-            _ => Err(CastValueError {
+            _ => Err(ValueError::CastValue {
                 requested: "tag",
                 got: self.value_type(),
             }),
@@ -121,10 +133,10 @@ where
     }
 
     /// Retrieves the primitive value as a sequence of DICOM tags.
-    pub fn as_tags(&self) -> Result<&[Tag], CastValueError> {
+    pub fn as_tags(&self) -> Result<&[Tag], ValueError> {
         match self {
             &Value::Primitive(PrimitiveValue::Tags(ref v)) => Ok(&v),
-            _ => Err(CastValueError {
+            _ => Err(ValueError::CastValue {
                 requested: "tag",
                 got: self.value_type(),
             }),

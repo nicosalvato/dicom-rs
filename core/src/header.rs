@@ -3,11 +3,29 @@
 //! element header, and element composite types.
 
 use crate::error::{Error, Result};
-use crate::value::{DicomValueType, PrimitiveValue, Value};
+use crate::value::{DicomValueType, PrimitiveValue, Value, ValueError};
+use snafu::Snafu;
 use std::borrow::Cow;
 use std::cmp::Ordering;
 use std::fmt;
 use std::str::from_utf8;
+
+/// Module-leve error type for header inspection operations.
+#[derive(Debug, Clone, PartialEq, Snafu)]
+pub enum HeaderError {
+    #[snafu(display("expected {}, but got value length {}", expected, got))]
+    UnexpectedDataValueLength {
+        expected: &'static str,
+        got: Length,
+    },
+    #[snafu(display("expected {}, but got element of tag {}", expected, got))]
+    UnexpectedElement {
+        expected: &'static str,
+        got: Tag,
+    },
+}
+
+pub type Result<T> = std::result::Result<T, HeaderError>;
 
 /// A trait for a data type containing a DICOM header.
 pub trait Header {
@@ -202,8 +220,8 @@ where
     }
 
     /// Retrieve the element's value as a single string.
-    pub fn to_str(&self) -> Result<Cow<str>> {
-        self.value.to_str().map_err(From::from)
+    pub fn to_str(&self) -> std::result::Result<Cow<str>, ValueError> {
+        self.value.to_str()
     }
 }
 
@@ -317,7 +335,7 @@ impl SequenceItemHeader {
                 // item delimiter
                 // delimiters should not have a positive length
                 if len != Length(0) {
-                    Err(Error::UnexpectedDataValueLength)
+                    Err(HeaderError::UnexpectedDataValueLength { expected: "0", got: len})
                 } else {
                     Ok(SequenceItemHeader::ItemDelimiter)
                 }
@@ -326,7 +344,7 @@ impl SequenceItemHeader {
                 // sequence delimiter
                 Ok(SequenceItemHeader::SequenceDelimiter)
             }
-            _ => Err(Error::UnexpectedElement),
+            tag => Err(HeaderError::UnexpectedElement { expected: "", got: tag}),
         }
     }
 }

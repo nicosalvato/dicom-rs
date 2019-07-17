@@ -2,9 +2,10 @@
 //!
 
 use byteordered::{ByteOrdered, Endianness};
-use crate::error::Result;
+use super::{Result, ReadData};
 use std::io::Read;
 use super::BasicDecode;
+use snafu::ResultExt;
 
 /// A basic decoder of DICOM primitive elements in little endian.
 #[derive(Debug, Default, Clone, PartialEq)]
@@ -19,42 +20,42 @@ impl BasicDecode for LittleEndianBasicDecoder {
     where
         S: Read,
     {
-        ByteOrdered::le(source).read_u16().map_err(Into::into)
+        ByteOrdered::le(source).read_u16().context(ReadData)
     }
 
     fn decode_ul<S>(&self, source: S) -> Result<u32>
     where
         S: Read,
     {
-        ByteOrdered::le(source).read_u32().map_err(Into::into)
+        ByteOrdered::le(source).read_u32().context(ReadData)
     }
 
     fn decode_ss<S>(&self, source: S) -> Result<i16>
     where
         S: Read,
     {
-        ByteOrdered::le(source).read_i16().map_err(Into::into)
+        ByteOrdered::le(source).read_i16().context(ReadData)
     }
 
     fn decode_sl<S>(&self, source: S) -> Result<i32>
     where
         S: Read,
     {
-        ByteOrdered::le(source).read_i32().map_err(Into::into)
+        ByteOrdered::le(source).read_i32().context(ReadData)
     }
 
     fn decode_fl<S>(&self, source: S) -> Result<f32>
     where
         S: Read,
     {
-        ByteOrdered::le(source).read_f32().map_err(Into::into)
+        ByteOrdered::le(source).read_f32().context(ReadData)
     }
 
     fn decode_fd<S>(&self, source: S) -> Result<f64>
     where
         S: Read,
     {
-        ByteOrdered::le(source).read_f64().map_err(Into::into)
+        ByteOrdered::le(source).read_f64().context(ReadData)
     }
 }
 
@@ -71,42 +72,42 @@ impl BasicDecode for BigEndianBasicDecoder {
     where
         S: Read,
     {
-        ByteOrdered::be(source).read_u16().map_err(Into::into)
+        ByteOrdered::be(source).read_u16().context(ReadData)
     }
 
     fn decode_ul<S>(&self, source: S) -> Result<u32>
     where
         S: Read,
     {
-        ByteOrdered::be(source).read_u32().map_err(Into::into)
+        ByteOrdered::be(source).read_u32().context(ReadData)
     }
 
     fn decode_ss<S>(&self, source: S) -> Result<i16>
     where
         S: Read,
     {
-        ByteOrdered::be(source).read_i16().map_err(Into::into)
+        ByteOrdered::be(source).read_i16().context(ReadData)
     }
 
     fn decode_sl<S>(&self, source: S) -> Result<i32>
     where
         S: Read,
     {
-        ByteOrdered::be(source).read_i32().map_err(Into::into)
+        ByteOrdered::be(source).read_i32().context(ReadData)
     }
 
     fn decode_fl<S>(&self, source: S) -> Result<f32>
     where
         S: Read,
     {
-        ByteOrdered::be(source).read_f32().map_err(Into::into)
+        ByteOrdered::be(source).read_f32().context(ReadData)
     }
 
     fn decode_fd<S>(&self, source: S) -> Result<f64>
     where
         S: Read,
     {
-        ByteOrdered::be(source).read_f64().map_err(Into::into)
+        ByteOrdered::be(source).read_f64().context(ReadData)
     }
 }
 

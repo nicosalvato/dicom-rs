@@ -1,8 +1,9 @@
 //! This module contains the type-erased version of a decoder.
 
 use byteordered::Endianness;
-use crate::error::Result;
+use super::{Result, Header};
 use std::io::Read;
+use snafu::ResultExt;
 use dicom_core::header::{DataElementHeader, Length, SequenceItemHeader};
 use dicom_core::Tag;
 
@@ -60,7 +61,7 @@ pub trait Decode: BasicDecode {
     fn erased_decode_item(&self, mut source: &mut Read) -> Result<SequenceItemHeader> {
         let tag = self.erased_decode_tag(&mut source)?;
         let len = self.erased_decode_ul(&mut source)?;
-        let header = SequenceItemHeader::new(tag, Length(len))?;
+        let header = SequenceItemHeader::new(tag, Length(len)).context(Header)?;
         Ok(header)
     }
 
